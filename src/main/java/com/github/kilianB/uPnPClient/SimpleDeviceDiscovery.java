@@ -87,7 +87,7 @@ public class SimpleDeviceDiscovery {
 
 		DatagramSocket udpSocket = new DatagramSocket();
 		// devices
-		udpSocket.setSoTimeout(timeout * 1000);
+		udpSocket.setSoTimeout(timeout);
 		udpSocket.send(discoveryRequest);
 
 		// Work with response
