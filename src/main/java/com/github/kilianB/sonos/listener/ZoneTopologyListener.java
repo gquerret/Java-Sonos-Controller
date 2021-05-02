@@ -1,7 +1,6 @@
 package com.github.kilianB.sonos.listener;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
@@ -10,7 +9,6 @@ import org.jdom2.Element;
 import com.github.kilianB.sonos.SonosDevice;
 import com.github.kilianB.uPnPClient.UPnPEvent;
 import com.github.kilianB.uPnPClient.UPnPEventAdapter;
-import com.github.kilianB.uPnPClient.UPnPEventAdapterVerbose;
 
 /**
  * Sample event listener for the sonos topology events. Topology events
@@ -29,12 +27,12 @@ public class ZoneTopologyListener extends UPnPEventAdapter {
 	/**
 	 * Devices currently available in the network
 	 */
-	private HashSet<String> presentDevices = new HashSet<String>();
+	private HashSet<String> presentDevices = new HashSet<>();
 	
 	/**
 	 * Internal state of the devices current grouping state
 	 */
-	private HashSet<String> groupState = new HashSet<String>();
+	private HashSet<String> groupState = new HashSet<>();
 	
 	/**
 	 * Event listeners to be notified in case of noteworthy events
@@ -81,35 +79,33 @@ public class ZoneTopologyListener extends UPnPEventAdapter {
 
 	private HashSet<String> parseConnectedDeviceNames(UPnPEvent event) {
 		String ownName = device.getDeviceNameCached();
-		HashSet<String> devices = new HashSet<String>();
+		HashSet<String> devices = new HashSet<>();
+
 		// Are we interested about the household ids?
 		for (Element property : event.getProperties()) {
-
 			if (property.getName().equals("ZoneGroupState")) {
-				List<Element> zoneGroups = property.getChild("ZoneGroups").getChildren("ZoneGroup");
-
-				
-				for (Element zoneGroup : zoneGroups) {
-					ArrayList<String> allDevicesInZone = new ArrayList<String>();
-					for (Element device : zoneGroup.getChildren("ZoneGroupMember")) {
-						String deviceName = device.getAttributeValue("ZoneName");
-						allDevicesInZone.add(deviceName);
-					}
-					if(allDevicesInZone.contains(ownName)) {
-						//Check if we have a group change event
-						if(!groupState.isEmpty()) {
-							
-							if( !groupState.containsAll(allDevicesInZone) || groupState.size() != allDevicesInZone.size()) {
+				List<Element> zoneGroupsList = property.getChildren("ZoneGroups");
+				for (Element zoneGroups : zoneGroupsList) {
+					List<Element> zoneGroupList = zoneGroups.getChildren("ZoneGroup");
+					for (Element zoneGroup : zoneGroupList) {
+						ArrayList<String> allDevicesInZone = new ArrayList<>();
+						for (Element member : zoneGroup.getChildren("ZoneGroupMember")) {
+							String deviceName = member.getAttributeValue("ZoneName");
+							allDevicesInZone.add(deviceName);
+						}
+						if (allDevicesInZone.contains(ownName)) {
+							// Check if we have a group change event
+							if (!groupState.isEmpty() && (!groupState.containsAll(allDevicesInZone)
+									|| (groupState.size() != allDevicesInZone.size()))) {
 								groupState.clear();
 								for (SonosEventListener listener : listeners) {
 									listener.groupChanged(allDevicesInZone);
 								}
 							}
+							groupState.addAll(allDevicesInZone);
 						}
-						groupState.addAll(allDevicesInZone);
-						
+						devices.addAll(allDevicesInZone);
 					}
-					devices.addAll(allDevicesInZone);
 				}
 			}
 		}
